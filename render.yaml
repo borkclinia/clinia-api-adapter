@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: clinia-api-adapter
+    env: node
+    plan: free
+    buildCommand: bun install && bun run build
+    startCommand: bun start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: API_VERSION
+        value: v1
+      - key: API_PREFIX
+        value: /api
+      - key: CLINICA_SALUTE_BASE_URL
+        sync: false
+      - key: CLINICA_SALUTE_LOGIN
+        sync: false
+      - key: CLINICA_SALUTE_PASSWORD
+        sync: false
+    autoDeploy: true
+    branch: main

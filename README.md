@@ -199,6 +199,82 @@ src/
 - CORS
 - Morgan (logging)
 
+## Deploy no Render
+
+Este projeto está configurado para deploy automático no Render.
+
+### Opção 1: Deploy via GitHub (Recomendado)
+
+1. **Fork ou clone este repositório**
+2. **Conecte ao Render:**
+   - Acesse [render.com](https://render.com)
+   - Conecte sua conta GitHub
+   - Clique em "New +" → "Web Service"
+   - Selecione este repositório
+
+3. **Configuração automática:**
+   - O Render detectará automaticamente o `render.yaml`
+   - As configurações de build serão aplicadas automaticamente
+
+4. **Configure as variáveis de ambiente:**
+   ```
+   CLINICA_SALUTE_LOGIN=seu_login_aqui
+   CLINICA_SALUTE_PASSWORD=sua_senha_aqui
+   ```
+
+### Opção 2: Deploy Manual
+
+1. **Clone o repositório:**
+   ```bash
+   git clone https://github.com/borkclinia/clinia-api-adapter.git
+   cd clinia-api-adapter
+   ```
+
+2. **Configure as variáveis de ambiente no Render:**
+   - `NODE_ENV=production`
+   - `CLINICA_SALUTE_BASE_URL=https://clinicasalute.realclinic.com.br/ClinicaSalute`
+   - `CLINICA_SALUTE_LOGIN=seu_login`
+   - `CLINICA_SALUTE_PASSWORD=sua_senha`
+
+3. **Deploy:**
+   - Build Command: `bun install && bun run build`
+   - Start Command: `bun start`
+
+### Configurações do Render
+
+O projeto inclui:
+- ✅ `render.yaml` para configuração automática
+- ✅ `Dockerfile` para containerização (opcional)
+- ✅ Health check endpoint (`/health`)
+- ✅ Graceful shutdown
+- ✅ Configuração de CORS para produção
+- ✅ Logging otimizado para produção
+
+### Variáveis de Ambiente Necessárias
+
+| Variável | Obrigatória | Descrição |
+|----------|-------------|-----------|
+| `CLINICA_SALUTE_LOGIN` | ✅ | Login da API Clinica Salute |
+| `CLINICA_SALUTE_PASSWORD` | ✅ | Senha da API Clinica Salute |
+| `NODE_ENV` | ⚠️ | Ambiente (production/development) |
+| `PORT` | ⚠️ | Porta do servidor (padrão: 3000) |
+| `CORS_ORIGIN` | ❌ | Origens permitidas (separadas por vírgula) |
+
+### Monitoramento
+
+Após o deploy, você pode verificar o status da aplicação:
+
+- **Health Check:** `https://sua-app.onrender.com/health`
+- **API Base:** `https://sua-app.onrender.com/api/v1/`
+- **Readiness:** `https://sua-app.onrender.com/ready`
+
+### Troubleshooting
+
+1. **Erro de build:** Verifique se todas as dependências estão no `package.json`
+2. **Erro de runtime:** Verifique os logs no dashboard do Render
+3. **Erro de autenticação:** Verifique as variáveis de ambiente
+4. **Timeout:** A aplicação tem timeout de 30s para requisições
+
 ## Licença
 
 ISC
