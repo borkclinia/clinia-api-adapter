@@ -126,14 +126,47 @@ export class ProfessionalService extends BaseService {
     }
   }
 
-  async getSpecialties(): Promise<Specialty[]> {
+  async getSpecialties(params?: {
+    healthInsuranceId?: string;
+    locationId?: string;
+    planId?: string;
+    professionalId?: string;
+  }): Promise<Specialty[]> {
     try {
       const response = await this.handleRequest<ClinicaSaluteEspecialidade[]>(
-        this.axios.post('/api/EspecialidadeIntegracao/Pesquisar', {})
+        this.axios.post('/api/EspecialidadeIntegracao/Pesquisar', {
+          IdConvenio: params?.healthInsuranceId ? parseInt(params.healthInsuranceId) : undefined,
+          IdUnidade: params?.locationId ? parseInt(params.locationId) : undefined,
+          IdPlano: params?.planId ? parseInt(params.planId) : undefined,
+          IdProfissional: params?.professionalId ? parseInt(params.professionalId) : undefined,
+        })
       );
 
       return response.map(e => this.mapEspecialidadeToSpecialty(e));
     } catch (error) {
+      console.error('Error fetching specialties:', error);
+      return [];
+    }
+  }
+
+  async getSpecialtyById(id: string): Promise<Specialty | null> {
+    try {
+      const response = await this.handleRequest<ClinicaSaluteEspecialidade[]>(
+        this.axios.post('/api/EspecialidadeIntegracao/Pesquisar', {
+          IdEspecialidade: parseInt(id),
+        })
+      );
+
+      const especialidades = response || [];
+      if (especialidades.length > 0) {
+        return this.mapEspecialidadeToSpecialty(especialidades[0]);
+      }
+
+      return null;
+    } catch (error: any) {
+      if (error.statusCode === 404) {
+        return null;
+      }
       throw error;
     }
   }

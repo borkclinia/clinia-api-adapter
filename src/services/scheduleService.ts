@@ -67,22 +67,37 @@ export class ScheduleService extends BaseService {
       // Transform to Clinia's expected format: dates as keys, time intervals as values
       const schedule: Record<string, Array<{start: string, end: string}>> = {};
       
+      // Handle empty response
+      if (!response || !Array.isArray(response)) {
+        return schedule;
+      }
+
       response.forEach(agenda => {
+        if (!agenda.horarios || !Array.isArray(agenda.horarios)) {
+          return;
+        }
+
         const availableSlots = agenda.horarios
-          .filter(h => h.disponivel)
+          .filter(h => h && h.disponivel && h.horario)
           .map(h => {
-            const duration = h.duracao || 30; // Default 30 minutes
-            const [hours, minutes] = h.horario.split(':').map(Number);
-            const totalMinutes = hours * 60 + minutes + duration;
-            const endHours = Math.floor(totalMinutes / 60);
-            const endMins = totalMinutes % 60;
-            const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-            
-            return {
-              start: h.horario,
-              end: endTime
-            };
-          });
+            try {
+              const duration = h.duracao || 30; // Default 30 minutes
+              const [hours, minutes] = h.horario.split(':').map(Number);
+              const totalMinutes = hours * 60 + minutes + duration;
+              const endHours = Math.floor(totalMinutes / 60);
+              const endMins = totalMinutes % 60;
+              const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+              
+              return {
+                start: h.horario,
+                end: endTime
+              };
+            } catch (timeError) {
+              console.warn('Error parsing time slot:', h.horario, timeError);
+              return null;
+            }
+          })
+          .filter(slot => slot !== null) as Array<{start: string, end: string}>;
           
         if (availableSlots.length > 0) {
           schedule[agenda.data] = availableSlots;
@@ -91,7 +106,9 @@ export class ScheduleService extends BaseService {
 
       return schedule;
     } catch (error) {
-      throw error;
+      console.error('Error fetching schedule:', error);
+      // Return empty schedule instead of throwing error
+      return {};
     }
   }
 

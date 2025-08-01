@@ -6,16 +6,14 @@ import { ApiError } from '../middleware/errorHandler';
 export class AppointmentController {
   async getAppointments(req: Request, res: Response, next: NextFunction) {
     try {
-      const { page, pageSize, patientId, professionalId, startDate, endDate, status } = req.query;
+      const { start, end, client, professional, location, service, state } = req.query;
       
       const result = await appointmentService.getAppointments({
-        page: page ? parseInt(page as string) : undefined,
-        pageSize: pageSize ? parseInt(pageSize as string) : undefined,
-        patientId: patientId as string,
-        professionalId: professionalId as string,
-        startDate: startDate as string,
-        endDate: endDate as string,
-        status: status as string,
+        patientId: client as string,
+        professionalId: professional as string,
+        startDate: start as string,
+        endDate: end as string,
+        status: state as string,
       });
 
       // Return array directly as expected by Clinia

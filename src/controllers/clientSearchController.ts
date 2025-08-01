@@ -3,6 +3,23 @@ import { patientService } from '../services/patientService';
 import { ApiError } from '../middleware/errorHandler';
 
 export class ClientSearchController {
+  // Endpoint principal para listar clientes (com paginação)
+  async getClients(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { limit, offset } = req.query;
+      
+      const result = await patientService.getPatients({
+        page: offset ? Math.floor(parseInt(offset as string) / (parseInt(limit as string) || 20)) + 1 : 1,
+        pageSize: limit ? parseInt(limit as string) : 20,
+      });
+
+      // Return array directly as expected by Clinia
+      res.json(result.data || []);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // Endpoint específico para busca de cliente usado pela Clinia
   async searchClient(req: Request, res: Response, next: NextFunction) {
     try {
@@ -43,13 +60,8 @@ export class ClientSearchController {
         } : null,
       })) || [];
 
-      // Resposta no formato que a Clinia espera
-      res.json({
-        success: true,
-        total: result.pagination?.totalRecords || clients.length,
-        clients: clients,
-        timestamp: new Date().toISOString(),
-      });
+      // Return array directly as expected by Clinia
+      res.json(result.data || []);
 
     } catch (error) {
       next(error);
@@ -64,9 +76,7 @@ export class ClientSearchController {
 
       if (!patient) {
         return res.status(404).json({
-          success: false,
-          error: 'Cliente não encontrado',
-          timestamp: new Date().toISOString(),
+          error: `Client with id ${id} not found`,
         });
       }
 
@@ -97,11 +107,8 @@ export class ClientSearchController {
         ativo: patient.active,
       };
 
-      res.json({
-        success: true,
-        client: client,
-        timestamp: new Date().toISOString(),
-      });
+      // Return client object directly as expected by Clinia
+      res.json(patient);
 
     } catch (error) {
       next(error);

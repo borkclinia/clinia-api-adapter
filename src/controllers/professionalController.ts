@@ -42,10 +42,35 @@ export class ProfessionalController {
 
   async getSpecialties(req: Request, res: Response, next: NextFunction) {
     try {
-      const specialties = await professionalService.getSpecialties();
+      const { healthInsurance, location, plan, professional } = req.query;
+      
+      const specialties = await professionalService.getSpecialties({
+        healthInsuranceId: healthInsurance as string,
+        locationId: location as string,
+        planId: plan as string,
+        professionalId: professional as string,
+      });
 
       // Return array directly as expected by Clinia
       res.json(specialties);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getSpecialtyById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const specialty = await professionalService.getSpecialtyById(id);
+
+      if (!specialty) {
+        return res.status(404).json({
+          error: `Specialty with id ${id} not found`,
+        });
+      }
+
+      // Return specialty object directly as expected by Clinia
+      res.json(specialty);
     } catch (error) {
       next(error);
     }
