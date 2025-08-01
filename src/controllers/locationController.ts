@@ -13,7 +13,15 @@ export class LocationController {
         search: search as string,
       });
 
-      res.json(result);
+      // Formato compatível com Clinia.io
+      const response = {
+        success: true,
+        total: result.pagination?.totalRecords || 0,
+        locations: result.data || [],
+        timestamp: new Date().toISOString(),
+      };
+
+      res.json(response);
     } catch (error) {
       next(error);
     }

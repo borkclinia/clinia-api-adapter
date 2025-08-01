@@ -28,21 +28,72 @@ export class LocationService extends BaseService {
     pageSize?: number;
     search?: string;
   }): Promise<PaginatedResponse<Location>> {
-    // Note: The Clinica Salute API documentation doesn't show a specific endpoint for units/locations
-    // This would need to be implemented based on the actual available endpoints
-    // For now, returning a mock response structure
-    
     const page = params?.page || 1;
     const pageSize = params?.pageSize || 20;
 
+    // Implementação com dados mock realistas para demonstração
+    // Em produção, isso deveria buscar dados reais da API Clinica Salute
+    const mockLocations: Location[] = [
+      {
+        id: '1',
+        name: 'Clinica Salute - Unidade Centro',
+        address: {
+          street: 'Rua das Flores',
+          number: '123',
+          complement: 'Sala 45',
+          neighborhood: 'Centro',
+          city: 'São Paulo',
+          state: 'SP',
+          zipCode: '01234-567',
+          country: 'Brasil',
+        },
+        phone: '(11) 1234-5678',
+        email: 'centro@clinicasalute.com.br',
+        active: true,
+      },
+      {
+        id: '2',
+        name: 'Clinica Salute - Unidade Zona Sul',
+        address: {
+          street: 'Avenida Paulista',
+          number: '1000',
+          neighborhood: 'Bela Vista',
+          city: 'São Paulo',
+          state: 'SP',
+          zipCode: '01310-100',
+          country: 'Brasil',
+        },
+        phone: '(11) 9876-5432',
+        email: 'zonasul@clinicasalute.com.br',
+        active: true,
+      },
+    ];
+
+    // Filtrar por search se fornecido
+    let filteredLocations = mockLocations;
+    if (params?.search) {
+      const searchTerm = params.search.toLowerCase();
+      filteredLocations = mockLocations.filter(location =>
+        location.name.toLowerCase().includes(searchTerm) ||
+        location.address.city.toLowerCase().includes(searchTerm) ||
+        location.address.neighborhood.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    const totalRecords = filteredLocations.length;
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedData = filteredLocations.slice(startIndex, endIndex);
+
     return {
       success: true,
-      data: [],
+      data: paginatedData,
       pagination: {
         page,
         pageSize,
-        totalRecords: 0,
-        totalPages: 0,
+        totalRecords,
+        totalPages,
       },
       metadata: {
         timestamp: new Date().toISOString(),

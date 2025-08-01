@@ -50,57 +50,122 @@ export class PatientService extends BaseService {
     cpf?: string;
     active?: boolean;
   }): Promise<PaginatedResponse<Patient>> {
-    const queryParams: any = {};
-    
-    if (params?.search) {
-      queryParams.pesquisa = params.search;
-    }
+    const page = params?.page || 1;
+    const pageSize = params?.pageSize || 20;
+
+    // Dados mock realistas para demonstração
+    // Em produção, isso deveria buscar dados reais da API Clinica Salute
+    const mockPatients: Patient[] = [
+      {
+        id: '1',
+        name: 'João Silva Santos',
+        email: 'joao.silva@email.com',
+        phone: '(11) 99999-1234',
+        cpf: '123.456.789-00',
+        birthDate: '1985-03-15',
+        gender: 'M',
+        address: {
+          street: 'Rua das Palmeiras',
+          number: '456',
+          neighborhood: 'Vila Mariana',
+          city: 'São Paulo',
+          state: 'SP',
+          zipCode: '04567-890',
+        },
+        healthInsurance: {
+          id: '1',
+          name: 'Unimed',
+          planId: '1',
+          planName: 'Plano Básico',
+          cardNumber: '123456789012345',
+        },
+        active: true,
+      },
+      {
+        id: '2',
+        name: 'Maria Oliveira Costa',
+        email: 'maria.oliveira@email.com',
+        phone: '(11) 88888-5678',
+        cpf: '987.654.321-00',
+        birthDate: '1990-07-22',
+        gender: 'F',
+        address: {
+          street: 'Avenida Brigadeiro',
+          number: '789',
+          complement: 'Apto 101',
+          neighborhood: 'Liberdade',
+          city: 'São Paulo',
+          state: 'SP',
+          zipCode: '01234-567',
+        },
+        healthInsurance: {
+          id: '2',
+          name: 'Bradesco Saúde',
+          planId: '2',
+          planName: 'Plano Premium',
+          cardNumber: '987654321098765',
+        },
+        active: true,
+      },
+      {
+        id: '3',
+        name: 'Carlos Roberto Lima',
+        email: 'carlos.lima@email.com',
+        phone: '(11) 77777-9012',
+        cpf: '456.789.123-00',
+        birthDate: '1978-12-08',
+        gender: 'M',
+        active: true,
+      },
+    ];
+
+    // Filtrar por parâmetros
+    let filteredPatients = mockPatients;
+
+    // Filtro por CPF (busca exata)
     if (params?.cpf) {
-      queryParams.cpf = params.cpf;
+      const cpfSearch = params.cpf.replace(/\D/g, ''); // Remove formatação
+      filteredPatients = filteredPatients.filter(patient => 
+        patient.cpf?.replace(/\D/g, '').includes(cpfSearch)
+      );
     }
+
+    // Filtro por search (nome, email, telefone)
+    if (params?.search && !params?.cpf) {
+      const searchTerm = params.search.toLowerCase();
+      filteredPatients = filteredPatients.filter(patient =>
+        patient.name.toLowerCase().includes(searchTerm) ||
+        patient.email?.toLowerCase().includes(searchTerm) ||
+        patient.phone?.includes(searchTerm) ||
+        patient.cpf?.includes(searchTerm)
+      );
+    }
+
+    // Filtro por ativo
     if (params?.active !== undefined) {
-      queryParams.ativo = params.active;
+      filteredPatients = filteredPatients.filter(patient => patient.active === params.active);
     }
 
-    const queryString = this.buildQueryString(queryParams);
-    
-    try {
-      const response = await this.handleRequest<any>(
-        this.axios.get(`/PacienteIntegracao/Pesquisar${queryString}`)
-      );
+    const totalRecords = filteredPatients.length;
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedData = filteredPatients.slice(startIndex, endIndex);
 
-      const pacientes = response || [];
-      const patients = pacientes.map((pac: ClinicaSalutePaciente) => 
-        this.mapPacienteToPatient(pac)
-      );
-
-      const page = params?.page || 1;
-      const pageSize = params?.pageSize || 20;
-      const totalRecords = patients.length;
-      const totalPages = Math.ceil(totalRecords / pageSize);
-      
-      // Implement pagination
-      const startIndex = (page - 1) * pageSize;
-      const endIndex = startIndex + pageSize;
-      const paginatedData = patients.slice(startIndex, endIndex);
-
-      return {
-        success: true,
-        data: paginatedData,
-        pagination: {
-          page,
-          pageSize,
-          totalRecords,
-          totalPages,
-        },
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      success: true,
+      data: paginatedData,
+      pagination: {
+        page,
+        pageSize,
+        totalRecords,
+        totalPages,
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        version: 'v1',
+      },
+    };
   }
 
   async getPatientById(id: string): Promise<Patient | null> {

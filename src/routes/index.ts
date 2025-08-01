@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import cliniaRoutes from './cliniaRoutes';
+
+// Import legacy routes for backwards compatibility
 import locationRoutes from './locationRoutes';
 import healthInsuranceRoutes from './healthInsuranceRoutes';
 import professionalRoutes from './professionalRoutes';
@@ -8,7 +11,11 @@ import appointmentRoutes from './appointmentRoutes';
 
 const router = Router();
 
-// Mount routes
+// Primary routes - Clinia.io compatible
+router.use('/', cliniaRoutes);
+
+// Legacy routes for backwards compatibility (lower priority)
+// These will only match if not caught by cliniaRoutes
 router.use('/', locationRoutes);
 router.use('/', healthInsuranceRoutes);
 router.use('/', professionalRoutes);
