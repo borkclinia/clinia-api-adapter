@@ -27,21 +27,19 @@ export class ScheduleService extends BaseService {
     endDate?: string;
     procedureId?: string;
   }): Promise<Schedule[]> {
-    const queryParams: any = {
-      profissionalId: params.professionalId,
-      dataInicio: params.startDate,
-      dataFim: params.endDate || params.startDate,
+    const requestData: any = {
+      IdProfissional: parseInt(params.professionalId),
+      DataInicio: params.startDate,
+      DataFim: params.endDate || params.startDate,
     };
 
     if (params.procedureId) {
-      queryParams.procedimentoId = params.procedureId;
+      requestData.IdProcedimento = parseInt(params.procedureId);
     }
-
-    const queryString = this.buildQueryString(queryParams);
     
     try {
       const response = await this.handleRequest<ClinicaSaluteAgenda[]>(
-        this.axios.get(`/AgendaIntegracao/ConsultarHorarios${queryString}`)
+        this.axios.post('/api/AgendaIntegracao/ConsultarHorarios', requestData)
       );
 
       return response.map(agenda => this.mapAgendaToSchedule(agenda));
@@ -55,26 +53,28 @@ export class ScheduleService extends BaseService {
     specialtyId?: string;
     procedureId?: string;
     date: string;
+    unitId?: string;
   }): Promise<ApiResponse<TimeSlot[]>> {
-    const queryParams: any = {
-      data: params.date,
+    const requestData: any = {
+      Data: params.date,
     };
 
     if (params.professionalId) {
-      queryParams.profissionalId = params.professionalId;
+      requestData.IdProfissional = parseInt(params.professionalId);
     }
     if (params.specialtyId) {
-      queryParams.especialidadeId = params.specialtyId;
+      requestData.IdEspecialidade = parseInt(params.specialtyId);
     }
     if (params.procedureId) {
-      queryParams.procedimentoId = params.procedureId;
+      requestData.IdProcedimento = parseInt(params.procedureId);
     }
-
-    const queryString = this.buildQueryString(queryParams);
+    if (params.unitId) {
+      requestData.IdUnidade = parseInt(params.unitId);
+    }
     
     try {
       const response = await this.handleRequest<ClinicaSaluteHorario[]>(
-        this.axios.get(`/AgendaIntegracao/HorariosDisponiveis${queryString}`)
+        this.axios.post('/api/AgendamentoIntegracao/ConsultarHorariosDisponiveis', requestData)
       );
 
       const timeSlots = response.map(h => this.mapHorarioToTimeSlot(h));

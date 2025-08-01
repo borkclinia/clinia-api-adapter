@@ -15,8 +15,7 @@ export const config = {
   },
   clinicaSalute: {
     baseUrl: process.env.CLINICA_SALUTE_BASE_URL || 'https://clinicasalute.realclinic.com.br/ClinicaSalute',
-    login: process.env.CLINICA_SALUTE_LOGIN || '',
-    password: process.env.CLINICA_SALUTE_PASSWORD || '',
+    staticToken: process.env.CLINICA_SALUTE_STATIC_TOKEN || '',
     timeout: parseInt(process.env.CLINICA_SALUTE_TIMEOUT || '30000', 10),
   },
   cors: {

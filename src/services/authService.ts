@@ -14,6 +14,7 @@ class AuthService {
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
+        'x-api-version': '1.0',
       },
     });
 
@@ -22,7 +23,9 @@ class AuthService {
       async (config) => {
         const token = await this.getValidToken();
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+          // Use Basic Auth instead of Bearer
+          const basicAuth = Buffer.from(`clinia.salutehomolo:${token}`).toString('base64');
+          config.headers.Authorization = `Basic ${basicAuth}`;
         }
         return config;
       },
@@ -57,45 +60,29 @@ class AuthService {
   }
 
   private async authenticate(): Promise<AuthToken> {
-    try {
-      const response = await axios.post(
-        `${config.clinicaSalute.baseUrl}/Token/generate`,
-        {
-          login: config.clinicaSalute.login,
-          senha: config.clinicaSalute.password,
-        }
-      );
-
-      if (response.data && response.data.token) {
-        const expiresIn = response.data.expiresIn || 3600; // Default to 1 hour
-        const expiresAt = new Date(Date.now() + expiresIn * 1000);
-
-        return {
-          token: response.data.token,
-          expiresAt,
-        };
-      }
-
-      throw new ApiError(
-        401,
-        'AUTH_FAILED',
-        'Failed to authenticate with Clinica Salute API'
-      );
-    } catch (error: any) {
-      if (error instanceof ApiError) {
-        throw error;
-      }
-
-      throw new ApiError(
-        500,
-        'AUTH_ERROR',
-        'Error authenticating with Clinica Salute API',
-        error.response?.data || error.message
-      );
+    // Using static token for homologation environment
+    if (config.clinicaSalute.staticToken) {
+      // Static token doesn't expire
+      const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
+      return {
+        token: config.clinicaSalute.staticToken,
+        expiresAt,
+      };
     }
+
+    throw new ApiError(
+      401,
+      'AUTH_FAILED',
+      'No authentication token configured'
+    );
   }
 
   public async getValidToken(): Promise<string> {
+    // For static token, always use it directly
+    if (config.clinicaSalute.staticToken) {
+      return config.clinicaSalute.staticToken;
+    }
+
     // Check if we have a valid token
     if (this.token && this.tokenExpiry && this.tokenExpiry > new Date()) {
       return this.token;

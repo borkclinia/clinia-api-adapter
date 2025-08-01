@@ -12,9 +12,9 @@ import { PaginatedResponse } from '../types';
 export class ProfessionalService extends BaseService {
   private mapEspecialidadeToSpecialty(especialidade: ClinicaSaluteEspecialidade): Specialty {
     return {
-      id: especialidade.id.toString(),
-      name: especialidade.nome,
-      code: especialidade.codigo,
+      id: (especialidade.id || especialidade.Id)?.toString() || '',
+      name: especialidade.nome || especialidade.Nome || '',
+      code: especialidade.codigo || especialidade.Codigo || '',
     };
   }
 
@@ -29,16 +29,16 @@ export class ProfessionalService extends BaseService {
 
   private mapProfissionalToProfessional(profissional: ClinicaSaluteProfissional): Professional {
     return {
-      id: profissional.id.toString(),
-      name: profissional.nome,
-      email: profissional.email,
-      phone: profissional.telefone,
-      cpf: profissional.cpf,
-      registrationNumber: profissional.numeroConselho,
-      registrationCouncil: profissional.conselho,
+      id: (profissional.id || profissional.Id)?.toString() || '',
+      name: profissional.nome || profissional.Nome || '',
+      email: profissional.email || profissional.Email || '',
+      phone: profissional.telefone || profissional.Telefone || '',
+      cpf: profissional.cpf || profissional.CPF || '',
+      registrationNumber: profissional.numeroConselho || profissional.NumeroConselho || '',
+      registrationCouncil: profissional.conselho || profissional.Conselho || '',
       specialties: profissional.especialidades?.map(e => this.mapEspecialidadeToSpecialty(e)) || [],
       services: profissional.procedimentos?.map(p => this.mapProcedimentoToService(p)) || [],
-      active: profissional.ativo,
+      active: profissional.ativo !== undefined ? profissional.ativo : true,
     };
   }
 
@@ -65,7 +65,12 @@ export class ProfessionalService extends BaseService {
     
     try {
       const response = await this.handleRequest<any>(
-        this.axios.get(`/ProfissionalIntegracao/Pesquisar${queryString}`)
+        this.axios.post(`/api/ProfissionalIntegracao/Pesquisar`, {
+          IdUnidade: undefined, // Try without unit ID
+          IdConvenio: 70, // Try ASSINANTE SALUTE convenio
+          IdEspecialidade: params?.specialtyId ? parseInt(params.specialtyId) : undefined,
+          IdProcedimento: undefined
+        })
       );
 
       const profissionais = response || [];
@@ -104,15 +109,22 @@ export class ProfessionalService extends BaseService {
 
   async getProfessionalById(id: string): Promise<Professional | null> {
     try {
-      const response = await this.handleRequest<ClinicaSaluteProfissional>(
-        this.axios.get(`/ProfissionalIntegracao/Buscar/${id}`)
+      const response = await this.handleRequest<ClinicaSaluteProfissional[]>(
+        this.axios.post('/api/ProfissionalIntegracao/Pesquisar', {
+          IdProfissional: parseInt(id),
+          IdUnidade: undefined,
+          IdConvenio: undefined,
+          IdEspecialidade: undefined,
+          IdProcedimento: undefined
+        })
       );
 
-      if (!response) {
-        return null;
+      const profissionais = response || [];
+      if (profissionais.length > 0) {
+        return this.mapProfissionalToProfessional(profissionais[0]);
       }
 
-      return this.mapProfissionalToProfessional(response);
+      return null;
     } catch (error: any) {
       if (error.statusCode === 404) {
         return null;
@@ -124,7 +136,7 @@ export class ProfessionalService extends BaseService {
   async getSpecialties(): Promise<Specialty[]> {
     try {
       const response = await this.handleRequest<ClinicaSaluteEspecialidade[]>(
-        this.axios.get('/EspecialidadeIntegracao/Listar')
+        this.axios.post('/api/EspecialidadeIntegracao/Pesquisar', {})
       );
 
       return response.map(e => this.mapEspecialidadeToSpecialty(e));

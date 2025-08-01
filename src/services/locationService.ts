@@ -5,21 +5,21 @@ import { PaginatedResponse } from '../types';
 export class LocationService extends BaseService {
   private mapClinicaToLocation(unidade: ClinicaSaluteUnidade): Location {
     return {
-      id: unidade.id.toString(),
-      name: unidade.nome,
+      id: (unidade.id || unidade.Id)?.toString() || '',
+      name: unidade.nome || unidade.Nome || '',
       address: {
-        street: unidade.endereco || '',
-        number: unidade.numero || '',
-        complement: unidade.complemento,
-        neighborhood: unidade.bairro || '',
-        city: unidade.cidade || '',
-        state: unidade.estado || '',
-        zipCode: unidade.cep || '',
+        street: unidade.endereco || unidade.Endereco || '',
+        number: unidade.numero || unidade.Numero || '',
+        complement: unidade.complemento || unidade.Complemento || '',
+        neighborhood: unidade.bairro || unidade.Bairro || '',
+        city: unidade.cidade || unidade.Cidade || '',
+        state: unidade.estado || unidade.Estado || '',
+        zipCode: unidade.cep || unidade.CEP || '',
         country: 'Brasil',
       },
-      phone: unidade.telefone,
-      email: unidade.email,
-      active: unidade.ativo,
+      phone: unidade.telefone || unidade.Telefone || '',
+      email: unidade.email || unidade.Email || '',
+      active: unidade.ativo !== undefined ? unidade.ativo : true,
     };
   }
 
@@ -27,84 +27,78 @@ export class LocationService extends BaseService {
     page?: number;
     pageSize?: number;
     search?: string;
+    specialtyId?: string;
+    professionalId?: string;
   }): Promise<PaginatedResponse<Location>> {
     const page = params?.page || 1;
     const pageSize = params?.pageSize || 20;
 
-    // Implementação com dados mock realistas para demonstração
-    // Em produção, isso deveria buscar dados reais da API Clinica Salute
-    const mockLocations: Location[] = [
-      {
-        id: '1',
-        name: 'Clinica Salute - Unidade Centro',
-        address: {
-          street: 'Rua das Flores',
-          number: '123',
-          complement: 'Sala 45',
-          neighborhood: 'Centro',
-          city: 'São Paulo',
-          state: 'SP',
-          zipCode: '01234-567',
-          country: 'Brasil',
-        },
-        phone: '(11) 1234-5678',
-        email: 'centro@clinicasalute.com.br',
-        active: true,
-      },
-      {
-        id: '2',
-        name: 'Clinica Salute - Unidade Zona Sul',
-        address: {
-          street: 'Avenida Paulista',
-          number: '1000',
-          neighborhood: 'Bela Vista',
-          city: 'São Paulo',
-          state: 'SP',
-          zipCode: '01310-100',
-          country: 'Brasil',
-        },
-        phone: '(11) 9876-5432',
-        email: 'zonasul@clinicasalute.com.br',
-        active: true,
-      },
-    ];
-
-    // Filtrar por search se fornecido
-    let filteredLocations = mockLocations;
-    if (params?.search) {
-      const searchTerm = params.search.toLowerCase();
-      filteredLocations = mockLocations.filter(location =>
-        location.name.toLowerCase().includes(searchTerm) ||
-        location.address.city.toLowerCase().includes(searchTerm) ||
-        location.address.neighborhood.toLowerCase().includes(searchTerm)
+    try {
+      const response = await this.handleRequest<ClinicaSaluteUnidade[]>(
+        this.axios.post('/api/EmpresaIntegracao/PesquisarUnidadesConsulta', {
+          IdEspecialidade: params?.specialtyId ? parseInt(params.specialtyId) : undefined,
+          IdProfissional: params?.professionalId ? parseInt(params.professionalId) : undefined,
+        })
       );
+
+      const unidades = response || [];
+      let locations = unidades.map(unidade => this.mapClinicaToLocation(unidade));
+
+      // Apply search filter if provided
+      if (params?.search) {
+        const searchTerm = params.search.toLowerCase();
+        locations = locations.filter(location =>
+          location.name.toLowerCase().includes(searchTerm) ||
+          location.address.city.toLowerCase().includes(searchTerm) ||
+          location.address.neighborhood.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      const totalRecords = locations.length;
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedData = locations.slice(startIndex, endIndex);
+
+      return {
+        success: true,
+        data: paginatedData,
+        pagination: {
+          page,
+          pageSize,
+          totalRecords,
+          totalPages,
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          version: 'v1',
+        },
+      };
+    } catch (error) {
+      throw error;
     }
-
-    const totalRecords = filteredLocations.length;
-    const totalPages = Math.ceil(totalRecords / pageSize);
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    const paginatedData = filteredLocations.slice(startIndex, endIndex);
-
-    return {
-      success: true,
-      data: paginatedData,
-      pagination: {
-        page,
-        pageSize,
-        totalRecords,
-        totalPages,
-      },
-      metadata: {
-        timestamp: new Date().toISOString(),
-        version: 'v1',
-      },
-    };
   }
 
   async getLocationById(id: string): Promise<Location | null> {
-    // Implementation would go here based on actual API endpoints
-    return null;
+    try {
+      const response = await this.handleRequest<ClinicaSaluteUnidade[]>(
+        this.axios.post('/api/EmpresaIntegracao/PesquisarUnidadesConsulta', {
+          IdUnidade: parseInt(id),
+        })
+      );
+
+      const unidades = response || [];
+      if (unidades.length > 0) {
+        return this.mapClinicaToLocation(unidades[0]);
+      }
+
+      return null;
+    } catch (error: any) {
+      if (error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
   }
 }
 

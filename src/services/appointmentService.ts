@@ -57,29 +57,27 @@ export class AppointmentService extends BaseService {
     endDate?: string;
     status?: string;
   }): Promise<PaginatedResponse<Appointment>> {
-    const queryParams: any = {};
+    const requestData: any = {};
     
     if (params?.patientId) {
-      queryParams.pacienteId = params.patientId;
+      requestData.IdPaciente = parseInt(params.patientId);
     }
     if (params?.professionalId) {
-      queryParams.profissionalId = params.professionalId;
+      requestData.IdProfissional = parseInt(params.professionalId);
     }
     if (params?.startDate) {
-      queryParams.dataInicio = params.startDate;
+      requestData.DataInicio = params.startDate;
     }
     if (params?.endDate) {
-      queryParams.dataFim = params.endDate;
+      requestData.DataFim = params.endDate;
     }
     if (params?.status) {
-      queryParams.status = params.status;
+      requestData.Status = params.status;
     }
-
-    const queryString = this.buildQueryString(queryParams);
     
     try {
       const response = await this.handleRequest<any>(
-        this.axios.get(`/AgendamentoIntegracao/Pesquisar${queryString}`)
+        this.axios.post('/api/AgendamentoIntegracao/BuscaAgendamentoPaciente', requestData)
       );
 
       const agendamentos = response || [];
@@ -118,15 +116,18 @@ export class AppointmentService extends BaseService {
 
   async getAppointmentById(id: string): Promise<Appointment | null> {
     try {
-      const response = await this.handleRequest<ClinicaSaluteAgendamento>(
-        this.axios.get(`/AgendamentoIntegracao/Buscar/${id}`)
+      const response = await this.handleRequest<ClinicaSaluteAgendamento[]>(
+        this.axios.post('/api/AgendamentoIntegracao/BuscaAgendamentoPaciente', {
+          IdAgendamento: parseInt(id)
+        })
       );
 
-      if (!response) {
-        return null;
+      const agendamentos = response || [];
+      if (agendamentos.length > 0) {
+        return this.mapAgendamentoToAppointment(agendamentos[0]);
       }
 
-      return this.mapAgendamentoToAppointment(response);
+      return null;
     } catch (error: any) {
       if (error.statusCode === 404) {
         return null;
@@ -149,7 +150,7 @@ export class AppointmentService extends BaseService {
 
     try {
       const response = await this.handleRequest<ClinicaSaluteAgendamento>(
-        this.axios.post('/AgendamentoIntegracao/Agendar', agendarRequest)
+        this.axios.post('/api/AgendamentoIntegracao/Agendar', agendarRequest)
       );
 
       return this.mapAgendamentoToAppointment(response);
@@ -176,10 +177,27 @@ export class AppointmentService extends BaseService {
       );
     }
 
+    // Use Confirmar endpoint for confirmed status
+    if (status === 'confirmed') {
+      try {
+        const response = await this.handleRequest<ClinicaSaluteAgendamento>(
+          this.axios.post('/api/AgendamentoIntegracao/Confirmar', {
+            IdAgendamento: parseInt(id),
+          })
+        );
+
+        return this.mapAgendamentoToAppointment(response);
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    // For other status updates, use generic endpoint if available
     try {
       const response = await this.handleRequest<ClinicaSaluteAgendamento>(
-        this.axios.put(`/AgendamentoIntegracao/AtualizarStatus/${id}`, {
-          status: clinicaStatus,
+        this.axios.post(`/api/AgendamentoIntegracao/AtualizarStatus`, {
+          IdAgendamento: parseInt(id),
+          Status: clinicaStatus,
         })
       );
 
@@ -192,8 +210,9 @@ export class AppointmentService extends BaseService {
   async cancelAppointment(id: string, reason?: string): Promise<Appointment> {
     try {
       const response = await this.handleRequest<ClinicaSaluteAgendamento>(
-        this.axios.post(`/AgendamentoIntegracao/Cancelar/${id}`, {
-          motivo: reason,
+        this.axios.post('/api/AgendamentoIntegracao/Cancelar', {
+          IdAgendamento: parseInt(id),
+          Motivo: reason,
         })
       );
 

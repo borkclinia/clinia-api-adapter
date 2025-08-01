@@ -53,132 +53,67 @@ export class PatientService extends BaseService {
     const page = params?.page || 1;
     const pageSize = params?.pageSize || 20;
 
-    // Dados mock realistas para demonstração
-    // Em produção, isso deveria buscar dados reais da API Clinica Salute
-    const mockPatients: Patient[] = [
-      {
-        id: '1',
-        name: 'João Silva Santos',
-        email: 'joao.silva@email.com',
-        phone: '(11) 99999-1234',
-        cpf: '123.456.789-00',
-        birthDate: '1985-03-15',
-        gender: 'M',
-        address: {
-          street: 'Rua das Palmeiras',
-          number: '456',
-          neighborhood: 'Vila Mariana',
-          city: 'São Paulo',
-          state: 'SP',
-          zipCode: '04567-890',
-        },
-        healthInsurance: {
-          id: '1',
-          name: 'Unimed',
-          planId: '1',
-          planName: 'Plano Básico',
-          cardNumber: '123456789012345',
-        },
-        active: true,
-      },
-      {
-        id: '2',
-        name: 'Maria Oliveira Costa',
-        email: 'maria.oliveira@email.com',
-        phone: '(11) 88888-5678',
-        cpf: '987.654.321-00',
-        birthDate: '1990-07-22',
-        gender: 'F',
-        address: {
-          street: 'Avenida Brigadeiro',
-          number: '789',
-          complement: 'Apto 101',
-          neighborhood: 'Liberdade',
-          city: 'São Paulo',
-          state: 'SP',
-          zipCode: '01234-567',
-        },
-        healthInsurance: {
-          id: '2',
-          name: 'Bradesco Saúde',
-          planId: '2',
-          planName: 'Plano Premium',
-          cardNumber: '987654321098765',
-        },
-        active: true,
-      },
-      {
-        id: '3',
-        name: 'Carlos Roberto Lima',
-        email: 'carlos.lima@email.com',
-        phone: '(11) 77777-9012',
-        cpf: '456.789.123-00',
-        birthDate: '1978-12-08',
-        gender: 'M',
-        active: true,
-      },
-    ];
+    try {
+      const searchData: any = {};
+      
+      if (params?.search) {
+        searchData.nome = params.search;
+      }
+      if (params?.cpf) {
+        searchData.cpf = params.cpf.replace(/\D/g, ''); // Remove formatting
+      }
 
-    // Filtrar por parâmetros
-    let filteredPatients = mockPatients;
-
-    // Filtro por CPF (busca exata)
-    if (params?.cpf) {
-      const cpfSearch = params.cpf.replace(/\D/g, ''); // Remove formatação
-      filteredPatients = filteredPatients.filter(patient => 
-        patient.cpf?.replace(/\D/g, '').includes(cpfSearch)
+      const response = await this.handleRequest<ClinicaSalutePaciente[]>(
+        this.axios.post('/api/PacienteIntegracao/Buscar', searchData)
       );
+
+      const pacientes = response || [];
+      let patients = pacientes.map(paciente => this.mapPacienteToPatient(paciente));
+
+      // Apply active filter if provided
+      if (params?.active !== undefined) {
+        patients = patients.filter(patient => patient.active === params.active);
+      }
+
+      const totalRecords = patients.length;
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedData = patients.slice(startIndex, endIndex);
+
+      return {
+        success: true,
+        data: paginatedData,
+        pagination: {
+          page,
+          pageSize,
+          totalRecords,
+          totalPages,
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          version: 'v1',
+        },
+      };
+    } catch (error) {
+      throw error;
     }
-
-    // Filtro por search (nome, email, telefone)
-    if (params?.search && !params?.cpf) {
-      const searchTerm = params.search.toLowerCase();
-      filteredPatients = filteredPatients.filter(patient =>
-        patient.name.toLowerCase().includes(searchTerm) ||
-        patient.email?.toLowerCase().includes(searchTerm) ||
-        patient.phone?.includes(searchTerm) ||
-        patient.cpf?.includes(searchTerm)
-      );
-    }
-
-    // Filtro por ativo
-    if (params?.active !== undefined) {
-      filteredPatients = filteredPatients.filter(patient => patient.active === params.active);
-    }
-
-    const totalRecords = filteredPatients.length;
-    const totalPages = Math.ceil(totalRecords / pageSize);
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    const paginatedData = filteredPatients.slice(startIndex, endIndex);
-
-    return {
-      success: true,
-      data: paginatedData,
-      pagination: {
-        page,
-        pageSize,
-        totalRecords,
-        totalPages,
-      },
-      metadata: {
-        timestamp: new Date().toISOString(),
-        version: 'v1',
-      },
-    };
   }
 
   async getPatientById(id: string): Promise<Patient | null> {
     try {
-      const response = await this.handleRequest<ClinicaSalutePaciente>(
-        this.axios.get(`/PacienteIntegracao/Buscar/${id}`)
+      const response = await this.handleRequest<ClinicaSalutePaciente[]>(
+        this.axios.post('/api/PacienteIntegracao/Buscar', {
+          id: parseInt(id)
+        })
       );
 
-      if (!response) {
-        return null;
+      const pacientes = response || [];
+      if (pacientes.length > 0) {
+        return this.mapPacienteToPatient(pacientes[0]);
       }
 
-      return this.mapPacienteToPatient(response);
+      return null;
     } catch (error: any) {
       if (error.statusCode === 404) {
         return null;
@@ -209,7 +144,7 @@ export class PatientService extends BaseService {
 
     try {
       const response = await this.handleRequest<ClinicaSalutePaciente>(
-        this.axios.post('/PacienteIntegracao/Cadastrar', pacienteData)
+        this.axios.post('/api/PacienteIntegracao/Inserir', pacienteData)
       );
 
       return this.mapPacienteToPatient(response);
@@ -241,7 +176,7 @@ export class PatientService extends BaseService {
 
     try {
       const response = await this.handleRequest<ClinicaSalutePaciente>(
-        this.axios.put('/PacienteIntegracao/Atualizar', pacienteData)
+        this.axios.post('/api/PacienteIntegracao/Alterar', pacienteData)
       );
 
       return this.mapPacienteToPatient(response);

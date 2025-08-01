@@ -15,11 +15,11 @@ export class HealthInsuranceService extends BaseService {
 
   private mapConvenioToHealthInsurance(convenio: ClinicaSaluteConvenio): HealthInsurance {
     return {
-      id: convenio.id.toString(),
-      name: convenio.nome,
-      registrationNumber: convenio.cnpj,
+      id: convenio.id?.toString() || convenio.Id?.toString() || '',
+      name: convenio.nome || convenio.Nome || '',
+      registrationNumber: convenio.cnpj || convenio.CNPJ || '',
       plans: convenio.planos?.map(plano => this.mapPlanoToPlan(plano)) || [],
-      active: convenio.ativo,
+      active: convenio.ativo !== undefined ? convenio.ativo : true,
     };
   }
 
@@ -42,7 +42,11 @@ export class HealthInsuranceService extends BaseService {
     
     try {
       const response = await this.handleRequest<any>(
-        this.axios.get(`/ConvenioIntegracao/Pesquisar${queryString}`)
+        this.axios.post(`/api/ConvenioIntegracao/Pesquisar`, {
+          IdUnidade: undefined,
+          IdEspecialidade: undefined,
+          IdProfissional: undefined
+        })
       );
 
       const convenios = response || [];
@@ -82,7 +86,7 @@ export class HealthInsuranceService extends BaseService {
   async getHealthInsuranceById(id: string): Promise<HealthInsurance | null> {
     try {
       const response = await this.handleRequest<ClinicaSaluteConvenio>(
-        this.axios.get(`/ConvenioIntegracao/Buscar/${id}`)
+        this.axios.get(`/api/ConvenioIntegracao/Buscar/${id}`)
       );
 
       if (!response) {
