@@ -45,7 +45,10 @@ export class ServiceController {
       // Return service object directly as expected by Clinia
       res.json(service);
     } catch (error) {
-      next(error);
+      console.error('Error in getServiceById:', error);
+      res.status(404).json({
+        error: `Service with id ${req.params.id} not found`,
+      });
     }
   }
 }

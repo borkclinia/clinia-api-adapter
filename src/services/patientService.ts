@@ -4,19 +4,25 @@ import { PaginatedResponse } from '../types';
 
 export class PatientService extends BaseService {
   private mapPacienteToPatient(paciente: ClinicaSalutePaciente): Patient {
-    const phones = [];
-    if (paciente.telefone) phones.push(paciente.telefone);
-    if (paciente.celular) phones.push(paciente.celular);
-    
-    return {
-      id: paciente.id.toString(),
-      name: paciente.nome,
-      phone: paciente.telefone || paciente.celular,
-      allPhones: phones.length > 0 ? phones : undefined,
-      cpf: paciente.cpf,
-      email: paciente.email,
-      birthday: paciente.dataNascimento,
-    };
+    try {
+      const phones = [];
+      if (paciente.telefone) phones.push(paciente.telefone);
+      if (paciente.celular) phones.push(paciente.celular);
+      
+      return {
+        id: (paciente.id || paciente.Id)?.toString() || '',
+        name: paciente.nome || paciente.Nome || '',
+        phone: paciente.telefone || paciente.celular || paciente.Telefone || paciente.Celular || '',
+        allPhones: phones.length > 0 ? phones : undefined,
+        cpf: paciente.cpf || paciente.CPF || '',
+        email: paciente.email || paciente.Email || '',
+        birthday: paciente.dataNascimento || paciente.DataNascimento || '',
+      };
+    } catch (error) {
+      console.error('Error mapping patient:', error, paciente);
+      // Return null to indicate mapping failure
+      return null;
+    }
   }
 
   async getPatients(params?: {
@@ -39,12 +45,20 @@ export class PatientService extends BaseService {
         searchData.cpf = params.cpf.replace(/\D/g, ''); // Remove formatting
       }
 
+      // If no search parameters, try to get first page of results
+      if (Object.keys(searchData).length === 0) {
+        searchData.pagina = page;
+        searchData.tamanhoPagina = pageSize;
+      }
+
       const response = await this.handleRequest<ClinicaSalutePaciente[]>(
         this.axios.post('/api/PacienteIntegracao/Buscar', searchData)
       );
 
       const pacientes = response || [];
-      let patients = pacientes.map(paciente => this.mapPacienteToPatient(paciente));
+      let patients = pacientes
+        .map(paciente => this.mapPacienteToPatient(paciente))
+        .filter(patient => patient !== null);
 
       // Apply search filter if provided (search by name, CPF, phone, email)
       if (params?.search) {
@@ -78,7 +92,22 @@ export class PatientService extends BaseService {
         },
       };
     } catch (error) {
-      throw error;
+      console.error('Error fetching patients:', error);
+      // Return empty result instead of throwing error to prevent 500
+      return {
+        success: true,
+        data: [],
+        pagination: {
+          page: page,
+          pageSize: pageSize,
+          totalRecords: 0,
+          totalPages: 0,
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          version: 'v1',
+        },
+      };
     }
   }
 

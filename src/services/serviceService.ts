@@ -4,14 +4,20 @@ import { PaginatedResponse } from '../types';
 
 export class ServiceService extends BaseService {
   private mapServicoToService(servico: ClinicaSaluteServico): Service {
-    return {
-      id: servico.id.toString(),
-      name: servico.nome,
-      price: servico.valor,
-      duration: servico.duracao,
-      description: servico.descricao,
-      preparation: servico.preparacao,
-    };
+    try {
+      return {
+        id: (servico.id || servico.Id)?.toString() || '',
+        name: servico.nome || servico.Nome || '',
+        price: servico.valor || servico.Valor,
+        duration: servico.duracao || servico.Duracao,
+        description: servico.descricao || servico.Descricao,
+        preparation: servico.preparacao || servico.Preparacao,
+      };
+    } catch (error) {
+      console.error('Error mapping service:', error, servico);
+      // Return null to indicate mapping failure
+      return null;
+    }
   }
 
   async getServices(params?: {
@@ -36,7 +42,9 @@ export class ServiceService extends BaseService {
       );
 
       const servicos = response || [];
-      let services = servicos.map(servico => this.mapServicoToService(servico));
+      let services = servicos
+        .map(servico => this.mapServicoToService(servico))
+        .filter(service => service !== null);
 
       // Filter by enabled status if provided
       if (params?.enabled !== undefined) {

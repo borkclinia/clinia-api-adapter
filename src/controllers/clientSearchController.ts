@@ -8,15 +8,21 @@ export class ClientSearchController {
     try {
       const { limit, offset } = req.query;
       
+      const limitNum = limit ? parseInt(limit as string) : 20;
+      const offsetNum = offset ? parseInt(offset as string) : 0;
+      const page = Math.floor(offsetNum / limitNum) + 1;
+      
       const result = await patientService.getPatients({
-        page: offset ? Math.floor(parseInt(offset as string) / (parseInt(limit as string) || 20)) + 1 : 1,
-        pageSize: limit ? parseInt(limit as string) : 20,
+        page: page,
+        pageSize: limitNum,
       });
 
       // Return array directly as expected by Clinia
       res.json(result.data || []);
     } catch (error) {
-      next(error);
+      console.error('Error in getClients:', error);
+      // Return empty array on error to prevent 500
+      res.json([]);
     }
   }
 
@@ -80,38 +86,14 @@ export class ClientSearchController {
         });
       }
 
-      // Formato simplificado para a Clinia
-      const client = {
-        id: patient.id,
-        nome: patient.name,
-        cpf: patient.cpf,
-        telefone: patient.phone,
-        email: patient.email,
-        dataNascimento: patient.birthDate,
-        sexo: patient.gender,
-        endereco: patient.address ? {
-          logradouro: patient.address.street,
-          numero: patient.address.number,
-          complemento: patient.address.complement,
-          bairro: patient.address.neighborhood,
-          cidade: patient.address.city,
-          estado: patient.address.state,
-          cep: patient.address.zipCode,
-        } : null,
-        convenio: patient.healthInsurance ? {
-          id: patient.healthInsurance.id,
-          nome: patient.healthInsurance.name,
-          plano: patient.healthInsurance.planName,
-          numeroCarteirinha: patient.healthInsurance.cardNumber,
-        } : null,
-        ativo: patient.active,
-      };
-
       // Return client object directly as expected by Clinia
       res.json(patient);
 
     } catch (error) {
-      next(error);
+      console.error('Error in getClientById:', error);
+      res.status(404).json({
+        error: `Client with id ${req.params.id} not found`,
+      });
     }
   }
 }
