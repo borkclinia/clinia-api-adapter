@@ -14,7 +14,6 @@ export class ProfessionalService extends BaseService {
     return {
       id: (especialidade.id || especialidade.Id)?.toString() || '',
       name: especialidade.nome || especialidade.Nome || '',
-      code: especialidade.codigo || especialidade.Codigo || '',
     };
   }
 
@@ -31,14 +30,8 @@ export class ProfessionalService extends BaseService {
     return {
       id: (profissional.id || profissional.Id)?.toString() || '',
       name: profissional.nome || profissional.Nome || '',
-      email: profissional.email || profissional.Email || '',
-      phone: profissional.telefone || profissional.Telefone || '',
-      cpf: profissional.cpf || profissional.CPF || '',
-      registrationNumber: profissional.numeroConselho || profissional.NumeroConselho || '',
-      registrationCouncil: profissional.conselho || profissional.Conselho || '',
+      register: profissional.numeroConselho || profissional.NumeroConselho || '',
       specialties: profissional.especialidades?.map(e => this.mapEspecialidadeToSpecialty(e)) || [],
-      services: profissional.procedimentos?.map(p => this.mapProcedimentoToService(p)) || [],
-      active: profissional.ativo !== undefined ? profissional.ativo : true,
     };
   }
 

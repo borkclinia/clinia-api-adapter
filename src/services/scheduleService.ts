@@ -22,19 +22,41 @@ export class ScheduleService extends BaseService {
   }
 
   async getSchedule(params: {
-    professionalId: string;
+    professionalId?: string;
     startDate: string;
     endDate?: string;
     procedureId?: string;
-  }): Promise<Schedule[]> {
+    specialtyId?: string;
+    locationId?: string;
+    healthInsuranceId?: string;
+    clientId?: string;
+    planId?: string;
+  }): Promise<Record<string, Array<{start: string, end: string}>>> {
     const requestData: any = {
-      IdProfissional: parseInt(params.professionalId),
       DataInicio: params.startDate,
       DataFim: params.endDate || params.startDate,
     };
 
+    if (params.professionalId) {
+      requestData.IdProfissional = parseInt(params.professionalId);
+    }
     if (params.procedureId) {
       requestData.IdProcedimento = parseInt(params.procedureId);
+    }
+    if (params.specialtyId) {
+      requestData.IdEspecialidade = parseInt(params.specialtyId);
+    }
+    if (params.locationId) {
+      requestData.IdUnidade = parseInt(params.locationId);
+    }
+    if (params.healthInsuranceId) {
+      requestData.IdConvenio = parseInt(params.healthInsuranceId);
+    }
+    if (params.clientId) {
+      requestData.IdPaciente = parseInt(params.clientId);
+    }
+    if (params.planId) {
+      requestData.IdPlano = parseInt(params.planId);
     }
     
     try {
@@ -42,7 +64,32 @@ export class ScheduleService extends BaseService {
         this.axios.post('/api/AgendaIntegracao/ConsultarHorarios', requestData)
       );
 
-      return response.map(agenda => this.mapAgendaToSchedule(agenda));
+      // Transform to Clinia's expected format: dates as keys, time intervals as values
+      const schedule: Record<string, Array<{start: string, end: string}>> = {};
+      
+      response.forEach(agenda => {
+        const availableSlots = agenda.horarios
+          .filter(h => h.disponivel)
+          .map(h => {
+            const duration = h.duracao || 30; // Default 30 minutes
+            const [hours, minutes] = h.horario.split(':').map(Number);
+            const totalMinutes = hours * 60 + minutes + duration;
+            const endHours = Math.floor(totalMinutes / 60);
+            const endMins = totalMinutes % 60;
+            const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+            
+            return {
+              start: h.horario,
+              end: endTime
+            };
+          });
+          
+        if (availableSlots.length > 0) {
+          schedule[agenda.data] = availableSlots;
+        }
+      });
+
+      return schedule;
     } catch (error) {
       throw error;
     }

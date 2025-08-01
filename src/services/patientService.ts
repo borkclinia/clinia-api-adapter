@@ -4,42 +4,18 @@ import { PaginatedResponse } from '../types';
 
 export class PatientService extends BaseService {
   private mapPacienteToPatient(paciente: ClinicaSalutePaciente): Patient {
-    let gender: 'M' | 'F' | 'O' | undefined;
-    if (paciente.sexo) {
-      if (paciente.sexo.toUpperCase() === 'M' || paciente.sexo.toUpperCase() === 'MASCULINO') {
-        gender = 'M';
-      } else if (paciente.sexo.toUpperCase() === 'F' || paciente.sexo.toUpperCase() === 'FEMININO') {
-        gender = 'F';
-      } else {
-        gender = 'O';
-      }
-    }
-
+    const phones = [];
+    if (paciente.telefone) phones.push(paciente.telefone);
+    if (paciente.celular) phones.push(paciente.celular);
+    
     return {
       id: paciente.id.toString(),
       name: paciente.nome,
-      email: paciente.email,
       phone: paciente.telefone || paciente.celular,
+      allPhones: phones.length > 0 ? phones : undefined,
       cpf: paciente.cpf,
-      birthDate: paciente.dataNascimento,
-      gender,
-      address: paciente.endereco ? {
-        street: paciente.endereco,
-        number: paciente.numero || '',
-        complement: paciente.complemento,
-        neighborhood: paciente.bairro || '',
-        city: paciente.cidade || '',
-        state: paciente.estado || '',
-        zipCode: paciente.cep || '',
-      } : undefined,
-      healthInsurance: paciente.convenioId ? {
-        id: paciente.convenioId.toString(),
-        name: paciente.convenioNome || '',
-        planId: paciente.planoId?.toString(),
-        planName: paciente.planoNome,
-        cardNumber: paciente.numeroCarteirinha,
-      } : undefined,
-      active: paciente.ativo,
+      email: paciente.email,
+      birthday: paciente.dataNascimento,
     };
   }
 
@@ -70,9 +46,15 @@ export class PatientService extends BaseService {
       const pacientes = response || [];
       let patients = pacientes.map(paciente => this.mapPacienteToPatient(paciente));
 
-      // Apply active filter if provided
-      if (params?.active !== undefined) {
-        patients = patients.filter(patient => patient.active === params.active);
+      // Apply search filter if provided (search by name, CPF, phone, email)
+      if (params?.search) {
+        const searchTerm = params.search.toLowerCase();
+        patients = patients.filter(patient =>
+          patient.name.toLowerCase().includes(searchTerm) ||
+          (patient.cpf && patient.cpf.includes(searchTerm)) ||
+          (patient.phone && patient.phone.includes(searchTerm)) ||
+          (patient.email && patient.email.toLowerCase().includes(searchTerm))
+        );
       }
 
       const totalRecords = patients.length;

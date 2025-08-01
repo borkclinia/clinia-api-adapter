@@ -9,42 +9,54 @@ import { PaginatedResponse } from '../types';
 import { ApiError } from '../middleware/errorHandler';
 
 export class AppointmentService extends BaseService {
-  private mapStatusToAppointment(status: string): Appointment['status'] {
-    const statusMap: Record<string, Appointment['status']> = {
-      'AGENDADO': 'scheduled',
-      'CONFIRMADO': 'confirmed',
-      'CANCELADO': 'cancelled',
-      'REALIZADO': 'completed',
-      'FALTOU': 'no-show',
+  private mapStatusToAppointment(status: string): Appointment['state'] {
+    const statusMap: Record<string, Appointment['state']> = {
+      'AGENDADO': 'WAITING',
+      'CONFIRMADO': 'CONFIRMED',
+      'CANCELADO': 'CANCELLED',
+      'REALIZADO': 'COMPLETED',
+      'FALTOU': 'NO_SHOW',
     };
     
-    return statusMap[status.toUpperCase()] || 'scheduled';
+    return statusMap[status.toUpperCase()] || 'WAITING';
   }
 
   private mapAgendamentoToAppointment(agendamento: ClinicaSaluteAgendamento): Appointment {
+    // Calculate end hour if duration is available
+    let endHour: string | undefined;
+    if (agendamento.duracao && agendamento.horario) {
+      const [hours, minutes] = agendamento.horario.split(':').map(Number);
+      const totalMinutes = hours * 60 + minutes + agendamento.duracao;
+      const endHours = Math.floor(totalMinutes / 60);
+      const endMins = totalMinutes % 60;
+      endHour = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+    }
+
     return {
       id: agendamento.id.toString(),
-      patientId: agendamento.pacienteId.toString(),
-      patientName: agendamento.pacienteNome || '',
-      professionalId: agendamento.profissionalId.toString(),
-      professionalName: agendamento.profissionalNome || '',
-      specialtyId: agendamento.especialidadeId?.toString(),
-      specialtyName: agendamento.especialidadeNome,
-      procedureId: agendamento.procedimentoId?.toString(),
-      procedureName: agendamento.procedimentoNome,
       date: agendamento.data,
-      time: agendamento.horario,
-      duration: agendamento.duracao,
-      status: this.mapStatusToAppointment(agendamento.status),
-      notes: agendamento.observacoes,
+      hour: agendamento.horario,
+      endHour,
+      state: this.mapStatusToAppointment(agendamento.status),
+      classification: agendamento.observacoes,
+      client: {
+        id: agendamento.pacienteId.toString(),
+        name: agendamento.pacienteNome || '',
+        phone: '', // Would need to fetch from patient data
+      },
+      location: undefined, // Would need location mapping
+      professional: agendamento.profissionalId ? {
+        id: agendamento.profissionalId.toString(),
+        name: agendamento.profissionalNome || '',
+      } : undefined,
+      service: agendamento.procedimentoId ? {
+        id: agendamento.procedimentoId.toString(),
+        name: agendamento.procedimentoNome || '',
+      } : undefined,
       healthInsurance: agendamento.convenioId ? {
         id: agendamento.convenioId.toString(),
         name: agendamento.convenioNome || '',
-        planId: agendamento.planoId?.toString(),
-        planName: agendamento.planoNome,
       } : undefined,
-      createdAt: agendamento.dataCriacao,
-      updatedAt: agendamento.dataAtualizacao,
     };
   }
 
@@ -138,14 +150,14 @@ export class AppointmentService extends BaseService {
 
   async createAppointment(appointmentData: CreateAppointmentRequest): Promise<Appointment> {
     const agendarRequest: ClinicaSaluteAgendarRequest = {
-      pacienteId: parseInt(appointmentData.patientId),
-      profissionalId: parseInt(appointmentData.professionalId),
-      procedimentoId: appointmentData.procedureId ? parseInt(appointmentData.procedureId) : undefined,
+      pacienteId: parseInt(appointmentData.client.id),
+      profissionalId: appointmentData.professional ? parseInt(appointmentData.professional.id) : 0,
+      procedimentoId: appointmentData.service ? parseInt(appointmentData.service.id) : undefined,
       data: appointmentData.date,
-      horario: appointmentData.time,
-      observacoes: appointmentData.notes,
-      convenioId: appointmentData.healthInsuranceId ? parseInt(appointmentData.healthInsuranceId) : undefined,
-      planoId: appointmentData.healthInsurancePlanId ? parseInt(appointmentData.healthInsurancePlanId) : undefined,
+      horario: appointmentData.hour,
+      observacoes: undefined,
+      convenioId: appointmentData.healthInsurance ? parseInt(appointmentData.healthInsurance.id) : undefined,
+      planoId: undefined,
     };
 
     try {
@@ -159,26 +171,26 @@ export class AppointmentService extends BaseService {
     }
   }
 
-  async updateAppointmentStatus(id: string, status: Appointment['status']): Promise<Appointment> {
-    const statusMap: Record<Appointment['status'], string> = {
-      'scheduled': 'AGENDADO',
-      'confirmed': 'CONFIRMADO',
-      'cancelled': 'CANCELADO',
-      'completed': 'REALIZADO',
-      'no-show': 'FALTOU',
+  async updateAppointmentStatus(id: string, state: Appointment['state']): Promise<Appointment> {
+    const statusMap: Record<Appointment['state'], string> = {
+      'WAITING': 'AGENDADO',
+      'CONFIRMED': 'CONFIRMADO',
+      'CANCELLED': 'CANCELADO',
+      'COMPLETED': 'REALIZADO',
+      'NO_SHOW': 'FALTOU',
     };
 
-    const clinicaStatus = statusMap[status];
+    const clinicaStatus = statusMap[state];
     if (!clinicaStatus) {
       throw new ApiError(
         400,
         'INVALID_STATUS',
-        `Invalid appointment status: ${status}`
+        `Invalid appointment status: ${state}`
       );
     }
 
     // Use Confirmar endpoint for confirmed status
-    if (status === 'confirmed') {
+    if (state === 'CONFIRMED') {
       try {
         const response = await this.handleRequest<ClinicaSaluteAgendamento>(
           this.axios.post('/api/AgendamentoIntegracao/Confirmar', {

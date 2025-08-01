@@ -5,17 +5,32 @@ import { ApiResponse } from '../types';
 export class PatientController {
   async getPatients(req: Request, res: Response, next: NextFunction) {
     try {
-      const { page, pageSize, search, cpf, active } = req.query;
+      const { limit, offset, search } = req.query;
       
       const result = await patientService.getPatients({
-        page: page ? parseInt(page as string) : undefined,
-        pageSize: pageSize ? parseInt(pageSize as string) : undefined,
+        page: offset ? Math.floor(parseInt(offset as string) / (parseInt(limit as string) || 20)) + 1 : 1,
+        pageSize: limit ? parseInt(limit as string) : 20,
         search: search as string,
-        cpf: cpf as string,
-        active: active === 'true' ? true : active === 'false' ? false : undefined,
       });
 
-      res.json(result);
+      // Return array directly as expected by Clinia
+      res.json(result.data || []);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async searchPatients(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { name, cpf, phone, email } = req.query;
+      const searchTerm = (name || cpf || phone || email) as string;
+      
+      const result = await patientService.getPatients({
+        search: searchTerm,
+      });
+
+      // Return array directly as expected by Clinia
+      res.json(result.data || []);
     } catch (error) {
       next(error);
     }
@@ -28,28 +43,12 @@ export class PatientController {
 
       if (!patient) {
         return res.status(404).json({
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: `Patient with id ${id} not found`,
-          },
-          metadata: {
-            timestamp: new Date().toISOString(),
-            version: 'v1',
-          },
-        } as ApiResponse);
+          error: `Patient with id ${id} not found`,
+        });
       }
 
-      const response: ApiResponse = {
-        success: true,
-        data: patient,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-
-      res.json(response);
+      // Return patient object directly as expected by Clinia
+      res.json(patient);
     } catch (error) {
       next(error);
     }
@@ -59,16 +58,8 @@ export class PatientController {
     try {
       const patient = await patientService.createPatient(req.body);
 
-      const response: ApiResponse = {
-        success: true,
-        data: patient,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-
-      res.status(201).json(response);
+      // Return patient object directly as expected by Clinia
+      res.status(201).json(patient);
     } catch (error) {
       next(error);
     }
@@ -79,16 +70,8 @@ export class PatientController {
       const { id } = req.params;
       const patient = await patientService.updatePatient(id, req.body);
 
-      const response: ApiResponse = {
-        success: true,
-        data: patient,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-
-      res.json(response);
+      // Return patient object directly as expected by Clinia
+      res.json(patient);
     } catch (error) {
       next(error);
     }

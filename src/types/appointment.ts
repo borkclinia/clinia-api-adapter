@@ -1,37 +1,52 @@
 export interface Appointment {
   id: string;
-  patientId: string;
-  patientName: string;
-  professionalId: string;
-  professionalName: string;
-  specialtyId?: string;
-  specialtyName?: string;
-  procedureId?: string;
-  procedureName?: string;
   date: string;
-  time: string;
-  duration?: number;
-  status: 'scheduled' | 'confirmed' | 'cancelled' | 'completed' | 'no-show';
-  notes?: string;
+  hour: string;
+  endHour?: string;
+  state: 'CONFIRMED' | 'WAITING' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
+  classification?: string;
+  client: {
+    id: string;
+    name: string;
+    phone?: string;
+  };
+  location?: {
+    id: string;
+    address: string;
+  };
+  professional?: {
+    id: string;
+    name: string;
+  };
+  service?: {
+    id: string;
+    name: string;
+  };
   healthInsurance?: {
     id: string;
     name: string;
-    planId?: string;
-    planName?: string;
   };
-  createdAt: string;
-  updatedAt?: string;
 }
 
 export interface CreateAppointmentRequest {
-  patientId: string;
-  professionalId: string;
-  procedureId?: string;
   date: string;
-  time: string;
-  notes?: string;
-  healthInsuranceId?: string;
-  healthInsurancePlanId?: string;
+  hour: string;
+  endHour?: string;
+  client: {
+    id: string;
+  };
+  professional?: {
+    id: string;
+  };
+  service?: {
+    id: string;
+  };
+  location?: {
+    id: string;
+  };
+  healthInsurance?: {
+    id: string;
+  };
 }
 
 export interface ClinicaSaluteAgendamento {

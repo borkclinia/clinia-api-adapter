@@ -18,7 +18,8 @@ export class AppointmentController {
         status: status as string,
       });
 
-      res.json(result);
+      // Return array directly as expected by Clinia
+      res.json(result.data || []);
     } catch (error) {
       next(error);
     }
@@ -31,28 +32,12 @@ export class AppointmentController {
 
       if (!appointment) {
         return res.status(404).json({
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: `Appointment with id ${id} not found`,
-          },
-          metadata: {
-            timestamp: new Date().toISOString(),
-            version: 'v1',
-          },
-        } as ApiResponse);
+          error: `Appointment with id ${id} not found`,
+        });
       }
 
-      const response: ApiResponse = {
-        success: true,
-        data: appointment,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-
-      res.json(response);
+      // Return appointment object directly as expected by Clinia
+      res.json(appointment);
     } catch (error) {
       next(error);
     }
@@ -62,16 +47,8 @@ export class AppointmentController {
     try {
       const appointment = await appointmentService.createAppointment(req.body);
 
-      const response: ApiResponse = {
-        success: true,
-        data: appointment,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-
-      res.status(201).json(response);
+      // Return appointment object directly as expected by Clinia
+      res.status(201).json(appointment);
     } catch (error) {
       next(error);
     }
@@ -80,28 +57,20 @@ export class AppointmentController {
   async updateAppointmentStatus(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { status } = req.body;
+      const { state } = req.body;
 
-      if (!status) {
+      if (!state) {
         throw new ApiError(
           400,
           'MISSING_PARAMS',
-          'status is required'
+          'state is required'
         );
       }
 
-      const appointment = await appointmentService.updateAppointmentStatus(id, status);
+      const appointment = await appointmentService.updateAppointmentStatus(id, state);
 
-      const response: ApiResponse = {
-        success: true,
-        data: appointment,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-
-      res.json(response);
+      // Return appointment object directly as expected by Clinia
+      res.json(appointment);
     } catch (error) {
       next(error);
     }
@@ -114,16 +83,8 @@ export class AppointmentController {
 
       const appointment = await appointmentService.cancelAppointment(id, reason);
 
-      const response: ApiResponse = {
-        success: true,
-        data: appointment,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-
-      res.json(response);
+      // Return appointment object directly as expected by Clinia
+      res.json(appointment);
     } catch (error) {
       next(error);
     }

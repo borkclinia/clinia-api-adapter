@@ -1,22 +1,16 @@
 export interface Professional {
   id: string;
   name: string;
-  email?: string;
-  phone?: string;
-  cpf?: string;
-  registrationNumber?: string;
-  registrationCouncil?: string;
-  specialties: Specialty[];
-  services: Service[];
-  active: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  description?: string;
+  image?: string;
+  expertise?: string;
+  register?: string;
+  specialties?: Specialty[];
 }
 
 export interface Specialty {
   id: string;
   name: string;
-  code?: string;
 }
 
 export interface Service {

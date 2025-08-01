@@ -17,35 +17,22 @@ export class HealthInsuranceService extends BaseService {
     return {
       id: convenio.id?.toString() || convenio.Id?.toString() || '',
       name: convenio.nome || convenio.Nome || '',
-      registrationNumber: convenio.cnpj || convenio.CNPJ || '',
-      plans: convenio.planos?.map(plano => this.mapPlanoToPlan(plano)) || [],
-      active: convenio.ativo !== undefined ? convenio.ativo : true,
+      color: '#3d5aee', // Default color, could be configurable
     };
   }
 
   async getHealthInsurances(params?: {
-    page?: number;
-    pageSize?: number;
-    search?: string;
-    active?: boolean;
+    serviceId?: string;
+    locationId?: string;
+    professionalId?: string;
   }): Promise<PaginatedResponse<HealthInsurance>> {
-    const queryParams: any = {};
-    
-    if (params?.search) {
-      queryParams.pesquisa = params.search;
-    }
-    if (params?.active !== undefined) {
-      queryParams.ativo = params.active;
-    }
-
-    const queryString = this.buildQueryString(queryParams);
-    
     try {
       const response = await this.handleRequest<any>(
         this.axios.post(`/api/ConvenioIntegracao/Pesquisar`, {
-          IdUnidade: undefined,
+          IdUnidade: params?.locationId ? parseInt(params.locationId) : undefined,
           IdEspecialidade: undefined,
-          IdProfissional: undefined
+          IdProfissional: params?.professionalId ? parseInt(params.professionalId) : undefined,
+          IdProcedimento: params?.serviceId ? parseInt(params.serviceId) : undefined,
         })
       );
 
@@ -54,24 +41,14 @@ export class HealthInsuranceService extends BaseService {
         this.mapConvenioToHealthInsurance(convenio)
       );
 
-      const page = params?.page || 1;
-      const pageSize = params?.pageSize || 20;
-      const totalRecords = healthInsurances.length;
-      const totalPages = Math.ceil(totalRecords / pageSize);
-      
-      // Implement pagination
-      const startIndex = (page - 1) * pageSize;
-      const endIndex = startIndex + pageSize;
-      const paginatedData = healthInsurances.slice(startIndex, endIndex);
-
       return {
         success: true,
-        data: paginatedData,
+        data: healthInsurances,
         pagination: {
-          page,
-          pageSize,
-          totalRecords,
-          totalPages,
+          page: 1,
+          pageSize: healthInsurances.length,
+          totalRecords: healthInsurances.length,
+          totalPages: 1,
         },
         metadata: {
           timestamp: new Date().toISOString(),

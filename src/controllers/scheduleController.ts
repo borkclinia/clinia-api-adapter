@@ -6,33 +6,40 @@ import { ApiError } from '../middleware/errorHandler';
 export class ScheduleController {
   async getSchedule(req: Request, res: Response, next: NextFunction) {
     try {
-      const { professionalId, startDate, endDate, procedureId } = req.query;
+      const { 
+        start, 
+        end, 
+        professional, 
+        service, 
+        location, 
+        healthInsurance, 
+        specialty, 
+        client, 
+        plan 
+      } = req.query;
 
-      if (!professionalId || !startDate) {
+      if (!start || !end) {
         throw new ApiError(
           400,
           'MISSING_PARAMS',
-          'professionalId and startDate are required'
+          'start and end dates are required'
         );
       }
 
       const schedules = await scheduleService.getSchedule({
-        professionalId: professionalId as string,
-        startDate: startDate as string,
-        endDate: endDate as string,
-        procedureId: procedureId as string,
+        professionalId: professional as string,
+        startDate: start as string,
+        endDate: end as string,
+        procedureId: service as string,
+        specialtyId: specialty as string,
+        locationId: location as string,
+        healthInsuranceId: healthInsurance as string,
+        clientId: client as string,
+        planId: plan as string,
       });
 
-      const response: ApiResponse = {
-        success: true,
-        data: schedules,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-
-      res.json(response);
+      // Return schedule object directly as expected by Clinia
+      res.json(schedules);
     } catch (error) {
       next(error);
     }

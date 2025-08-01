@@ -1,30 +1,13 @@
 export interface Patient {
   id: string;
   name: string;
-  email?: string;
+  description?: string;
   phone?: string;
+  allPhones?: string[];
   cpf?: string;
-  birthDate?: string;
-  gender?: 'M' | 'F' | 'O';
-  address?: {
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
-  healthInsurance?: {
-    id: string;
-    name: string;
-    planId?: string;
-    planName?: string;
-    cardNumber?: string;
-  };
-  active: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  image?: string;
+  email?: string;
+  birthday?: string;
 }
 
 export interface ClinicaSalutePaciente {

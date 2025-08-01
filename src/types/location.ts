@@ -1,28 +1,12 @@
 export interface Location {
   id: string;
-  name: string;
-  address: {
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-  phone?: string;
-  email?: string;
-  coordinates?: {
-    latitude: number;
-    longitude: number;
-  };
-  workingHours?: {
-    dayOfWeek: number;
-    openTime: string;
-    closeTime: string;
-  }[];
-  active: boolean;
+  name?: string;
+  address: string;
+  city?: string;
+  state?: string;
+  cep?: string;
+  lat?: number;
+  long?: number;
 }
 
 export interface ClinicaSaluteUnidade {

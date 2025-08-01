@@ -4,22 +4,24 @@ import { PaginatedResponse } from '../types';
 
 export class LocationService extends BaseService {
   private mapClinicaToLocation(unidade: ClinicaSaluteUnidade): Location {
+    const street = unidade.endereco || unidade.Endereco || '';
+    const number = unidade.numero || unidade.Numero || '';
+    const complement = unidade.complemento || unidade.Complemento || '';
+    const neighborhood = unidade.bairro || unidade.Bairro || '';
+    
+    // Build full address string
+    let fullAddress = street;
+    if (number) fullAddress += `, ${number}`;
+    if (complement) fullAddress += `, ${complement}`;
+    if (neighborhood) fullAddress += `, ${neighborhood}`;
+    
     return {
       id: (unidade.id || unidade.Id)?.toString() || '',
       name: unidade.nome || unidade.Nome || '',
-      address: {
-        street: unidade.endereco || unidade.Endereco || '',
-        number: unidade.numero || unidade.Numero || '',
-        complement: unidade.complemento || unidade.Complemento || '',
-        neighborhood: unidade.bairro || unidade.Bairro || '',
-        city: unidade.cidade || unidade.Cidade || '',
-        state: unidade.estado || unidade.Estado || '',
-        zipCode: unidade.cep || unidade.CEP || '',
-        country: 'Brasil',
-      },
-      phone: unidade.telefone || unidade.Telefone || '',
-      email: unidade.email || unidade.Email || '',
-      active: unidade.ativo !== undefined ? unidade.ativo : true,
+      address: fullAddress,
+      city: unidade.cidade || unidade.Cidade || '',
+      state: unidade.estado || unidade.Estado || '',
+      cep: unidade.cep || unidade.CEP || '',
     };
   }
 
@@ -48,9 +50,9 @@ export class LocationService extends BaseService {
       if (params?.search) {
         const searchTerm = params.search.toLowerCase();
         locations = locations.filter(location =>
-          location.name.toLowerCase().includes(searchTerm) ||
-          location.address.city.toLowerCase().includes(searchTerm) ||
-          location.address.neighborhood.toLowerCase().includes(searchTerm)
+          (location.name && location.name.toLowerCase().includes(searchTerm)) ||
+          location.address.toLowerCase().includes(searchTerm) ||
+          (location.city && location.city.toLowerCase().includes(searchTerm))
         );
       }
 

@@ -1,11 +1,7 @@
 export interface HealthInsurance {
   id: string;
   name: string;
-  registrationNumber?: string;
-  plans: HealthInsurancePlan[];
-  active: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  color?: string;
 }
 
 export interface HealthInsurancePlan {

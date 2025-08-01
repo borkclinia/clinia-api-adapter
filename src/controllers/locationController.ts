@@ -5,23 +5,18 @@ import { ApiResponse } from '../types';
 export class LocationController {
   async getLocations(req: Request, res: Response, next: NextFunction) {
     try {
-      const { page, pageSize, search } = req.query;
+      const { page, pageSize, search, service, professional, specialty, client } = req.query;
       
       const result = await locationService.getLocations({
         page: page ? parseInt(page as string) : undefined,
         pageSize: pageSize ? parseInt(pageSize as string) : undefined,
         search: search as string,
+        specialtyId: specialty as string,
+        professionalId: professional as string,
       });
 
-      // Formato compatível com Clinia.io
-      const response = {
-        success: true,
-        total: result.pagination?.totalRecords || 0,
-        locations: result.data || [],
-        timestamp: new Date().toISOString(),
-      };
-
-      res.json(response);
+      // Return array directly as expected by Clinia
+      res.json(result.data || []);
     } catch (error) {
       next(error);
     }
@@ -34,28 +29,12 @@ export class LocationController {
 
       if (!location) {
         return res.status(404).json({
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: `Location with id ${id} not found`,
-          },
-          metadata: {
-            timestamp: new Date().toISOString(),
-            version: 'v1',
-          },
-        } as ApiResponse);
+          error: `Location with id ${id} not found`,
+        });
       }
 
-      const response: ApiResponse = {
-        success: true,
-        data: location,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-
-      res.json(response);
+      // Return location object directly as expected by Clinia
+      res.json(location);
     } catch (error) {
       next(error);
     }

@@ -5,17 +5,18 @@ import { ApiResponse } from '../types';
 export class ProfessionalController {
   async getProfessionals(req: Request, res: Response, next: NextFunction) {
     try {
-      const { page, pageSize, search, specialtyId, active } = req.query;
+      const { page, pageSize, search, location, service, healthInsurance, specialty, enabled } = req.query;
       
       const result = await professionalService.getProfessionals({
         page: page ? parseInt(page as string) : undefined,
         pageSize: pageSize ? parseInt(pageSize as string) : undefined,
         search: search as string,
-        specialtyId: specialtyId as string,
-        active: active === 'true' ? true : active === 'false' ? false : undefined,
+        specialtyId: specialty as string,
+        active: enabled === 'true' ? true : enabled === 'false' ? false : undefined,
       });
 
-      res.json(result);
+      // Return array directly as expected by Clinia
+      res.json(result.data || []);
     } catch (error) {
       next(error);
     }
@@ -28,28 +29,12 @@ export class ProfessionalController {
 
       if (!professional) {
         return res.status(404).json({
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: `Professional with id ${id} not found`,
-          },
-          metadata: {
-            timestamp: new Date().toISOString(),
-            version: 'v1',
-          },
-        } as ApiResponse);
+          error: `Professional with id ${id} not found`,
+        });
       }
 
-      const response: ApiResponse = {
-        success: true,
-        data: professional,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-
-      res.json(response);
+      // Return professional object directly as expected by Clinia
+      res.json(professional);
     } catch (error) {
       next(error);
     }
@@ -59,16 +44,8 @@ export class ProfessionalController {
     try {
       const specialties = await professionalService.getSpecialties();
 
-      const response: ApiResponse = {
-        success: true,
-        data: specialties,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          version: 'v1',
-        },
-      };
-
-      res.json(response);
+      // Return array directly as expected by Clinia
+      res.json(specialties);
     } catch (error) {
       next(error);
     }
